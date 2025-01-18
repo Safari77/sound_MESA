@@ -1,55 +1,81 @@
 """
 Install https://github.com/martini-alessandro/Maximum-Entropy-Spectrum
 This script loads an audio file and it computes its PSD.
-Specify start and end frequencies, and filename.
-"""
 
-import sys
+Loudness can be normalized according to EBU R128, positive values are accepted
+but not recommended.
+"""
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-#from matplotlib import font_manager
 import soundfile as sf
+import pyloudnorm as pyln
 from memspectrum import MESA
 import memspectrum.GenerateTimeSeries as GenerateTimeSeries
 
-if len(sys.argv) != 4:
-    print("[freqstart] [freqend] [file] (freqend 0=Nyquist)")
-    sys.exit(1)
-fname = sys.argv[3]
+# Setup command line argument parsing
+parser = argparse.ArgumentParser(description='Analyze audio spectrum with optional loudness normalization.')
+parser.add_argument('filename', type=str, 
+                    help='Path to the audio file')
+parser.add_argument('--ratestart', type=int, default=0, 
+                    help='Start frequency for analysis (default: 0)')
+parser.add_argument('--rateend', type=int, default=0, 
+                    help='End frequency for analysis, 0 means Nyquist (default: 0)')
+parser.add_argument('--normalize', type=float, 
+                    help='Target loudness in LUFS for normalization (optional)')
+
+args = parser.parse_args()
+
+# Extract arguments
+fname = args.filename
+ratestart = args.ratestart
+rateend = args.rateend
+target_loudness = args.normalize
+
 plt.rcParams.update({'font.size': 10})
 plt.rcParams['font.family'] = 'Iosevka SS08'
 plt.rcParams['figure.dpi'] = 300
 
-#loading data and preparing input to MESA
+# Loading data and preparing input to MESA
 data, realrate = sf.read(fname)
-ratestart = int(sys.argv[1])
-rateend = int(sys.argv[2])
 if rateend == 0:
-    rateend = int(realrate/2)
+    rateend = int(realrate / 2)
 
-#data is (N,2): stereophonic sound
+# Data is (N,2): stereophonic sound
 # Check if the audio is mono (1D) or stereo (2D)
 if data.ndim == 1:
     # Convert mono to stereo by duplicating the channel
     data = np.stack((data, data), axis=-1)
+
+# Loudness normalization to EBU R128 if specified
+if target_loudness is not None:
+    meter = pyln.Meter(realrate)  # create BS.1770 meter
+    loudness = meter.integrated_loudness(data)
+    print(f"Integrated loudness before normalization: {loudness} LUFS")
+    normalized_audio = pyln.normalize.loudness(data, loudness, target_loudness)
+    normalized_loudness = meter.integrated_loudness(normalized_audio)
+    print(f"Integrated loudness after normalization: {normalized_loudness} LUFS")
+else:
+    normalized_audio = data
+
 # Calculate the length of the audio file in seconds
-t = data.shape[0] / realrate  # Total samples divided by sample rate
-print(f"Processing \"{fname}\", length {t} seconds, data Nyquist freq {realrate/2}, Analysis freq {ratestart}-{rateend}")
-data_MESA = data[:int(t * realrate), 0].astype(np.float64)
-dt = 1./realrate
-times_out = np.linspace(0., len(data_MESA)*dt, len(data_MESA))
+t = normalized_audio.shape[0] / realrate  # Total samples divided by sample rate
+print(f"Processing \"{fname}\", length {t} seconds, data Nyquist freq {realrate / 2}, Analysis freq {ratestart}-{rateend}")
+data_MESA = normalized_audio[:int(t * realrate), 0].astype(np.float64)
+dt = 1. / realrate
+times_out = np.linspace(0., len(data_MESA) * dt, len(data_MESA))
 
-#computing PSD with MESA
+# Computing PSD with MESA
 M = MESA()
-P, ak, opt = M.solve(data_MESA, method = "Standard", optimisation_method = "FPE",
-                     m = int(2*len(data_MESA)/(2*np.log(len(data_MESA)))))
+P, ak, opt = M.solve(data_MESA, method="Standard", optimisation_method="FPE",
+                     m=int(2 * len(data_MESA) / (2 * np.log(len(data_MESA)))))
 
-#evaluating the spectrum
+# Evaluating the spectrum
 N_points = 1000000
 f_PSD = np.linspace(ratestart, rateend, N_points)
 PSD = M.spectrum(dt, f_PSD)
 
-fig, ax = plt.subplots(1, sharex = True)
+fig, ax = plt.subplots(1, sharex=True)
 plt.plot(f_PSD, PSD.real)
 plt.yscale('log')
 plt.ylabel('PSD')
@@ -58,6 +84,7 @@ plt.xlabel("frequency (Hz)")
 # Find min and max PSD values
 min_idx_y = np.argmin(PSD.real)
 max_idx_y = np.argmax(PSD.real)
+print(f"Max frequency {f_PSD[max_idx_y]:.2f} Hz")
 
 # Scatter points for min and max
 plt.scatter(f_PSD[max_idx_y], PSD.real[max_idx_y], color='red',
@@ -66,7 +93,6 @@ plt.scatter(f_PSD[min_idx_y], PSD.real[min_idx_y], color='green',
             label=f'Min: {PSD.real[min_idx_y]:.4e} @{f_PSD[min_idx_y]:.4f}Hz', s=15)
 
 plt.title(fname)
-plt.tight_layout() # Automatically adjusts borders
+plt.tight_layout()  # Automatically adjusts borders
 plt.legend()
 plt.show()
-
