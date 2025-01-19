@@ -30,6 +30,8 @@ parser.add_argument('filename', type=str,
                     help='Path to the audio file')
 parser.add_argument('--verbose', action='store_true',
                     help='Show verbose information about the audio file')
+parser.add_argument('--logfreq', action='store_true',
+                    help='Use logarithmic frequency scale (maybe you also want --ratestart 20 or so)')
 parser.add_argument('--ratestart', type=int, default=0, 
                     help='Start frequency for analysis (default: 0)')
 parser.add_argument('--rateend', type=int, default=0, 
@@ -42,6 +44,7 @@ args = parser.parse_args()
 # Extract arguments
 fname = args.filename
 verbose = args.verbose
+logfreq = args.logfreq
 ratestart = args.ratestart
 rateend = args.rateend
 target_loudness = args.normalize
@@ -89,6 +92,8 @@ fig, ax = plt.subplots(1, sharex=True)
 plt.plot(f_PSD, PSD.real)
 plt.yscale('log')
 plt.ylabel('PSD')
+if logfreq:
+    plt.xscale('log')
 plt.xlabel("frequency (Hz)")
 
 # Find min and max PSD values
