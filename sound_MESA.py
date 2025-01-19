@@ -76,7 +76,6 @@ t = normalized_audio.shape[0] / realrate  # Total samples divided by sample rate
 print(f"Processing \"{fname}\", length {t} seconds, data Nyquist freq {realrate / 2}, Analysis freq {ratestart}-{rateend}")
 data_MESA = normalized_audio[:int(t * realrate), 0].astype(np.float64)
 dt = 1. / realrate
-times_out = np.linspace(0., len(data_MESA) * dt, len(data_MESA))
 
 # Computing PSD with MESA
 M = MESA()
