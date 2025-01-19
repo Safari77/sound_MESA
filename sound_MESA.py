@@ -28,6 +28,8 @@ except ImportError as e:
 parser = argparse.ArgumentParser(description='Analyze audio spectrum with optional loudness normalization.')
 parser.add_argument('filename', type=str, 
                     help='Path to the audio file')
+parser.add_argument('--verbose', action='store_true',
+                    help='Show verbose information about the audio file')
 parser.add_argument('--ratestart', type=int, default=0, 
                     help='Start frequency for analysis (default: 0)')
 parser.add_argument('--rateend', type=int, default=0, 
@@ -39,6 +41,7 @@ args = parser.parse_args()
 
 # Extract arguments
 fname = args.filename
+verbose = args.verbose
 ratestart = args.ratestart
 rateend = args.rateend
 target_loudness = args.normalize
@@ -47,6 +50,8 @@ plt.rcParams.update({'font.size': 10})
 plt.rcParams['font.family'] = 'Iosevka SS08'
 plt.rcParams['figure.dpi'] = 300
 
+if verbose:
+    print(sf.info(fname))
 # Loading data and preparing input to MESA
 data, realrate = sf.read(fname, always_2d=True)
 if rateend == 0:
