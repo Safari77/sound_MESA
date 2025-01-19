@@ -9,10 +9,20 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 # https://python-soundfile.readthedocs.io/en/0.11.0/
+sfreq = "0.11.0"
 import soundfile as sf
 import pyloudnorm as pyln
 from memspectrum import MESA
 import memspectrum.GenerateTimeSeries as GenerateTimeSeries
+from packaging import version
+import sys
+
+try:
+    if version.parse(sf.__version__) < version.parse(sfreq):
+        raise ImportError(f"SoundFile version >= {sfreq} is required, but {sf.__version__} is installed.")
+except ImportError as e:
+    sys.stderr.write(f"{e}\n")
+    sys.exit(1)
 
 # Setup command line argument parsing
 parser = argparse.ArgumentParser(description='Analyze audio spectrum with optional loudness normalization.')
