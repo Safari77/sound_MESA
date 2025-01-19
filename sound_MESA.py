@@ -8,6 +8,7 @@ but not recommended.
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+# https://python-soundfile.readthedocs.io/en/0.11.0/
 import soundfile as sf
 import pyloudnorm as pyln
 from memspectrum import MESA
@@ -37,15 +38,9 @@ plt.rcParams['font.family'] = 'Iosevka SS08'
 plt.rcParams['figure.dpi'] = 300
 
 # Loading data and preparing input to MESA
-data, realrate = sf.read(fname)
+data, realrate = sf.read(fname, always_2d=True)
 if rateend == 0:
     rateend = int(realrate / 2)
-
-# Data is (N,2): stereophonic sound
-# Check if the audio is mono (1D) or stereo (2D)
-if data.ndim == 1:
-    # Convert mono to stereo by duplicating the channel
-    data = np.stack((data, data), axis=-1)
 
 # Loudness normalization to EBU R128 if specified
 if target_loudness is not None:
