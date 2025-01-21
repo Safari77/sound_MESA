@@ -61,13 +61,13 @@ if data.ndim == 1 or data.shape[1] < 2:
 channel_1 = data[:int(t * realrate), 0].astype(np.float64)
 channel_2 = data[:int(t * realrate), 1].astype(np.float64)
 
-# Compute Cross Spectral Density (CSD) between the two channels
-f, Pxy = signal.coherence(channel_1, channel_2, fs=realrate, nperseg=nperseg, window=window)
+# Estimate the magnitude squared coherence estimate
+f, Cxy = signal.coherence(channel_1, channel_2, fs=realrate, nperseg=nperseg, window=window)
 
 # Filter frequencies and coherence values to the specified range
 mask = (f >= ratestart) & (f <= rateend)
 f_filtered = f[mask]
-Pxy_filtered = Pxy[mask]
+Pxy_filtered = Cxy[mask]
 
 # Find min and max values within the filtered range
 min_idx_y = np.argmin(Pxy_filtered)
@@ -79,7 +79,7 @@ max_freq = f_filtered[max_idx_y]
 print(f"Min/Max Coherence {min_val:.3f}@{min_freq:.2f}Hz / {max_val:.3f}@{max_freq:.2f}Hz")
 
 title=f'Coherence for {fname}'
-if np.allclose(Pxy, 1.0):
+if np.allclose(Cxy, 1.0):
     print("The two channels are identical.")
     title=f'Channels identical in {fname}'
 
