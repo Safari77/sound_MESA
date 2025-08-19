@@ -8,6 +8,8 @@ but not recommended.
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
+from datetime import datetime, timezone
 # https://python-soundfile.readthedocs.io/en/0.11.0/
 sfreq = "0.11.0"
 import soundfile as sf
@@ -106,7 +108,15 @@ plt.scatter(f_PSD[max_idx_y], PSD.real[max_idx_y], color='red',
 plt.scatter(f_PSD[min_idx_y], PSD.real[min_idx_y], color='green',
             label=f'Min: {PSD.real[min_idx_y]:.4e} @{f_PSD[min_idx_y]:.4f}Hz', s=15)
 
+input_path = Path(fname)
+base_name = input_path.stem
+dt_obj = datetime.now(timezone.utc)
+timestamp_utc = dt_obj.isoformat(timespec='seconds').replace('+00:00', 'Z').replace(':', '-')
+output_filename = f"{base_name}——{timestamp_utc}.svg"
+
 plt.title(fname)
 plt.tight_layout()  # Automatically adjusts borders
 plt.legend()
+print(f"Plot will be saved to: {output_filename}")
+plt.savefig(output_filename, format='svg', bbox_inches='tight')
 plt.show()
